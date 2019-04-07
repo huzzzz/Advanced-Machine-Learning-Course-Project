@@ -20,32 +20,31 @@ from keras.preprocessing.image import load_img, save_img, img_to_array
 data_dir = 'data/'
 
 style_img_files = os.listdir(data_dir + 'style/')
-style_imgs = []
+indices = []
 for file in style_img_files:
-	style_img = cv2.imread(data_dir + 'style/' + file)
-	style_imgs.append(style_img)
-style_imgs = np.array(style_imgs)
+	file = file.split('_')[0]
+	indices.append(file)
 
-mask_img_files = os.listdir(data_dir + 'mask/')
+style_imgs = []
 mask_imgs = []
-for file in mask_img_files:
-	mask_img = cv2.imread(data_dir + 'mask/' + file)
-	mask_imgs.append(mask_img)
-mask_imgs = np.array(mask_imgs)
-
-mask_dilated_img_files = os.listdir(data_dir + 'mask_dilated/')
 mask_dilated_imgs = []
-for file in mask_dilated_img_files:
-	mask_dilated_img = cv2.imread(data_dir + 'mask_dilated/' + file)
-	mask_dilated_imgs.append(mask_dilated_img)
-mask_dilated_imgs = np.array(mask_dilated_imgs)
-
-given_img_files = os.listdir(data_dir + 'fusion/')
 given_imgs = []
-for file in given_img_files:
-	given_img = cv2.imread(data_dir + 'fusion/' + file)
+for i in indices:
+	style_img = cv2.imread(data_dir + 'style/' + i + '_target.jpg')
+	style_imgs.append(style_img)
+	mask_img = cv2.imread(data_dir + 'mask/' + i + '_c_mask.jpg')
+	mask_imgs.append(mask_img)
+	mask_dilated_img = cv2.imread(data_dir + 'mask_dilated/' + i + '_c_mask_dilated.jpg')
+	mask_dilated_imgs.append(mask_dilated_img)
+	given_img = cv2.imread(data_dir + 'fusion/' + i + '_naive.jpg')
 	given_imgs.append(given_img)
+
+style_imgs = np.array(style_imgs)
+mask_imgs = np.array(mask_imgs)
+mask_dilated_imgs = np.array(mask_dilated_imgs)
 given_imgs = np.array(given_imgs)
+
+
 
 # particular case - 
 
@@ -61,9 +60,11 @@ mask_dilated_img = mask_dilated_imgs[0]
 # mask_dilated_img = utils.dilate_mask(mask_img)
 
 # get tensor representations of our images
+
 given_img = K.variable(utils.preprocess_image(given_img_o))
 style_img = K.variable(utils.preprocess_image(style_img))
 img_rows, img_cols = given_img.shape[1] , given_img.shape[2]
+
 
 # this will contain our generated image
 if K.image_data_format() == 'channels_first':
