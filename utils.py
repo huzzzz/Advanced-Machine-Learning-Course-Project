@@ -8,15 +8,20 @@ import pdb
 
 def preprocess_image(img):
 	img = np.expand_dims(img, axis=0)
-	img = ( img.astype( np.float32 ) - 127.5 ) / 127.5
+	img = vgg16.preprocess_input(img)
+	# caffe: will convert the images from RGB to BGR,
+    # then will zero-center each color channel with
+    # respect to the ImageNet dataset, without scaling.
 	# converts the image to -1 and 1
 	return img
 
 def deprocess_image(x,img_nrows, img_ncols):
 
 	x = x.reshape((img_nrows, img_ncols, 3))
-	x = ((x + 1) / 2) * 255.0
-	x = x[:, :, ::-1]
+	x[:, :, 0] += 103.939
+	x[:, :, 1] += 116.779
+	x[:, :, 2] += 123.68
+	x = x.astype(np.float32)
 	x = np.clip(x, 0, 255).astype('uint8')
 	return x
 
