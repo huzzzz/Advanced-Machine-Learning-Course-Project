@@ -4,25 +4,21 @@ import keras.backend as K
 from keras.applications import vgg16
 from keras.models import Model
 import numpy as np
+import pdb
 
 def preprocess_image(img):
 	img = np.expand_dims(img, axis=0)
-	img = vgg16.preprocess_input(img)
+	img = ( img.astype( np.float32 ) - 127.5 ) / 127.5
 	# converts the image to -1 and 1
 	return img
 
 def deprocess_image(x,img_nrows, img_ncols):
-	if K.image_data_format() == 'channels_first':
-		x = x.reshape((3, img_nrows, img_ncols))
-		x = x.transpose((1, 2, 0))
-	else:
-		x = x.reshape((img_nrows, img_ncols, 3))
-	# Remove zero-center by mean pixel
+
+	x = x.reshape((img_nrows, img_ncols, 3))
+	x = ((x + 1) / 2) * 255.0
 	x = x[:, :, ::-1]
 	x = np.clip(x, 0, 255).astype('uint8')
 	return x
-
-
 
 def dilate_mask(mask):
 	loose_mask = cv2.GaussianBlur(mask, (35,35) , 35/3)
