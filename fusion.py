@@ -14,11 +14,11 @@ from keras.layers import Input
 import time
 from scipy.optimize import fmin_l_bfgs_b
 from keras.preprocessing.image import load_img, save_img, img_to_array
-
+import sys
 
 # copy data
 data_dir = 'data/'
-file_index = 1
+file_index = int(sys.argv[1])
 
 style_img_files = os.listdir(data_dir + 'style/')
 indices = []
