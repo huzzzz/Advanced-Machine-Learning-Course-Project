@@ -18,6 +18,7 @@ from keras.preprocessing.image import load_img, save_img, img_to_array
 
 # copy data
 data_dir = 'data/'
+file_index = 1
 
 style_img_files = os.listdir(data_dir + 'style/')
 indices = []
@@ -48,10 +49,10 @@ given_imgs = np.array(given_imgs)
 
 # particular case - 
 
-style_img = style_imgs[0]
-given_img_o = given_imgs[0]
-mask_img = mask_imgs[0]
-mask_dilated_img = mask_dilated_imgs[0]
+style_img = style_imgs[file_index]
+given_img_o = given_imgs[file_index]
+mask_img = mask_imgs[file_index]
+mask_dilated_img = mask_dilated_imgs[file_index]
 
 # object_img = np.random.rand(500,300,3)
 # style_img = np.random.rand(500,300,3)
@@ -176,8 +177,9 @@ for i in range(max_iter):
 	print('Current loss value:', min_val)
 	# save current generated image
 	img = utils.deprocess_image(x.copy(), img_rows, img_cols)
-	os.makedirs('results/', exist_ok=True)
-	fname = 'results/' + '_at_iteration_%d.png' % i
+	save_folder = 'results/' + indices[file_index] + '/'
+	os.makedirs(save_folder, exist_ok=True)
+	fname = save_folder + 'iteration_%d.png' % i
 	save_img(fname, img)
 	end_time = time.time()
 	print('Image saved as', fname)
