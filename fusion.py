@@ -29,7 +29,7 @@ for file in style_img_files:
 style_imgs = []
 mask_imgs = []
 mask_dilated_imgs = []
-given_imgs = []
+naive_imgs = []
 for i in indices:
 	style_img = cv2.imread(data_dir + 'style/' + i + '_target.jpg')
 	style_imgs.append(style_img)
@@ -37,45 +37,39 @@ for i in indices:
 	mask_imgs.append(mask_img)
 	mask_dilated_img = cv2.imread(data_dir + 'mask_dilated/' + i + '_c_mask_dilated.jpg')
 	mask_dilated_imgs.append(mask_dilated_img)
-	given_img = cv2.imread(data_dir + 'fusion/' + i + '_naive.jpg')
-	given_imgs.append(given_img)
+	naive_img = cv2.imread(data_dir + 'fusion/' + i + '_naive.jpg')
+	naive_imgs.append(naive_img)
 
 style_imgs = np.array(style_imgs)
 mask_imgs = np.array(mask_imgs)
 mask_dilated_imgs = np.array(mask_dilated_imgs)
-given_imgs = np.array(given_imgs)
+naive_imgs = np.array(naive_imgs)
 
 
 
 # particular case - 
 
 style_img = style_imgs[file_index]
-given_img_o = given_imgs[file_index]
+naive_img_o = naive_imgs[file_index]
 mask_img = mask_imgs[file_index]
 mask_dilated_img = mask_dilated_imgs[file_index]
 
 # object_img = np.random.rand(500,300,3)
 # style_img = np.random.rand(500,300,3)
-# given_img_o = np.random.rand(500,300,3)
+# naive_img_o = np.random.rand(500,300,3)
 # mask_img = np.random.rand(500,300,3)
 # mask_dilated_img = utils.dilate_mask(mask_img)
 
 # get tensor representations of our images
 
-given_img = K.variable(utils.preprocess_image(given_img_o))
+naive_img = K.variable(utils.preprocess_image(naive_img_o))
 style_img = K.variable(utils.preprocess_image(style_img))
-img_rows, img_cols = given_img.shape[1] , given_img.shape[2]
+img_rows, img_cols = naive_img.shape[1] , naive_img.shape[2]
 
-
-# this will contain our generated image
-if K.image_data_format() == 'channels_first':
-	fusion_img = K.placeholder((1, 3, img_rows, img_cols))
-else:
-	fusion_img = K.placeholder((1, img_rows, img_cols, 3))
-
+fusion_img = K.placeholder((1, img_rows, img_cols, 3))
 
 # combine the 3 images into a single Keras tensor
-input_tensor = K.concatenate([given_img,style_img, fusion_img], axis=0)
+input_tensor = K.concatenate([naive_img,style_img, fusion_img], axis=0)
 
 # build the vgg16 network with our 3 images as input
 # the model will be loaded with pre-trained ImageNet weights
@@ -85,7 +79,6 @@ print('Model loaded.')
 # get the symbolic outputs of each "key" layer (we gave them unique names).
 outputs_dict = dict([(layer.name, layer.output) for layer in model.layers])
 
-
 c_weight = 0.4
 s_weight = 0.4
 t_weight = 0.2
@@ -93,9 +86,9 @@ t_weight = 0.2
 # combine these loss functions into a single scalar
 loss = K.variable(0.0)
 layer_features = outputs_dict['block5_conv2']
-given_img_content_features = layer_features[0, :, :, :]
+naive_img_content_features = layer_features[0, :, :, :]
 fusion_img_content_features = layer_features[2, :, :, :]
-loss += c_weight * loss_util.content_loss(given_img_content_features,
+loss += c_weight * loss_util.content_loss(naive_img_content_features,
 										fusion_img_content_features)
 
 feature_layers = ['block1_conv1', 'block2_conv1',
@@ -166,7 +159,7 @@ evaluator = Evaluator()
 
 # run scipy-based optimization (L-BFGS) over the pixels of the generated image
 # so as to minimize the neural style loss
-x = utils.preprocess_image(given_img_o)
+x = utils.preprocess_image(naive_img_o)
 
 max_iter = 100
 for i in range(max_iter):

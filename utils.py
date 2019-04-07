@@ -8,6 +8,7 @@ import numpy as np
 def preprocess_image(img):
 	img = np.expand_dims(img, axis=0)
 	img = vgg16.preprocess_input(img)
+	# converts the image to -1 and 1
 	return img
 
 def deprocess_image(x,img_nrows, img_ncols):
@@ -17,10 +18,6 @@ def deprocess_image(x,img_nrows, img_ncols):
 	else:
 		x = x.reshape((img_nrows, img_ncols, 3))
 	# Remove zero-center by mean pixel
-	x[:, :, 0] += 103.939
-	x[:, :, 1] += 116.779
-	x[:, :, 2] += 123.68
-	# 'BGR'->'RGB'
 	x = x[:, :, ::-1]
 	x = np.clip(x, 0, 255).astype('uint8')
 	return x

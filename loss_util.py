@@ -44,14 +44,8 @@ def content_loss(base, combination):
 
 def total_variation_loss(x, img_rows, img_cols):
 	assert K.ndim(x) == 4
-	if K.image_data_format() == 'channels_first':
-		a = K.square(
-			x[:, :, :img_rows - 1, :img_cols - 1] - x[:, :, 1:, :img_cols - 1])
-		b = K.square(
-			x[:, :, :img_rows - 1, :img_cols - 1] - x[:, :, :img_rows - 1, 1:])
-	else:
-		a = K.square(
-			x[:, :img_rows - 1, :img_cols - 1, :] - x[:, 1:, :img_cols - 1, :])
-		b = K.square(
-			x[:, :img_rows - 1, :img_cols - 1, :] - x[:, :img_rows - 1, 1:, :])
+	a = K.square(
+		x[:, :img_rows - 1, :img_cols - 1, :] - x[:, 1:, :img_cols - 1, :])
+	b = K.square(
+		x[:, :img_rows - 1, :img_cols - 1, :] - x[:, :img_rows - 1, 1:, :])
 	return K.sum(K.pow(a + b, 1.25))
