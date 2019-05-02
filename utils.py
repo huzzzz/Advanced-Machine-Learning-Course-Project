@@ -9,10 +9,10 @@ import pdb
 def preprocess_img(img):
 	img = np.expand_dims(img, axis=0)
 	img = vgg16.preprocess_input(img)
-	# caffe: will convert the imgs from RGB to BGR,
+	# caffe: will convert the images from RGB to BGR,
     # then will zero-center each color channel with
-    # respect to the imgNet dataset, without scaling.
-	# converts the img to -1 and 1
+    # respect to the ImageNet dataset, without scaling.
+	# converts the image to -1 and 1
 	return img
 
 def deprocess_img(x,img_nrows, img_ncols):
@@ -29,17 +29,3 @@ def dilate_mask(mask):
 	loose_mask = cv2.GaussianBlur(mask, (35,35) , 35/3)
 	loose_mask[loose_mask>=0.1] = 1
 	return loose_mask
-
-def build_vgg(img,vgg_layers,weights="imgnet"):
-
-	# img = Input(shape=(img_rows, img_cols, 3))
-	# Get the vgg network from Keras applications
-	vgg = vgg16(weights=weights, include_top=False)
-	# Output the first three pooling layers
-	vgg.outputs = [vgg.layers[i].output for i in vgg_layers]
-
-	# # Create model and compile
-	model = Model(inputs=img, outputs=vgg(img))
-	model.trainable = False
-	model.compile(loss='mse', optimizer='adam')	
-	return model

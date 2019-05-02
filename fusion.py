@@ -1,7 +1,7 @@
 import tensorflow as tf
 import datetime
 import keras.backend as K
-from tensorflow.contrib.layers import avg_pool2d
+from tensorflow.contrib.layers import avg_pool2d, max_pool2d
 from keras.callbacks import TensorBoard
 import matplotlib.pyplot as plt
 import numpy as np
@@ -55,6 +55,8 @@ naive_img_o = naive_imgs[file_index]
 mask_img = mask_imgs[file_index]
 mask_dilated_img = mask_dilated_imgs[file_index]
 
+mask_img = mask_dilated_img / 255.0
+
 # object_img = np.random.rand(500,300,3)
 # style_img = np.random.rand(500,300,3)
 # naive_img_o = np.random.rand(500,300,3)
@@ -63,9 +65,9 @@ mask_dilated_img = mask_dilated_imgs[file_index]
 
 # get tensor representations of our images
 
-naive_img = K.variable(utils.preprocess_image(naive_img_o))
-style_img = K.variable(utils.preprocess_image(style_img))
-mask_img = K.variable(utils.preprocess_image(mask_dilated_img))
+naive_img = K.variable(utils.preprocess_img(naive_img_o))
+style_img = K.variable(utils.preprocess_img(style_img))
+mask_img = K.variable(utils.preprocess_img(mask_dilated_img))
 img_rows, img_cols = naive_img.shape[1] , naive_img.shape[2]
 
 fusion_img = K.placeholder((1, img_rows, img_cols, 3))
@@ -95,14 +97,14 @@ fusion_img_content_features = layer_features[2, :, :, :]
 
 # downsample mask to match layer dimension
 while not int(mask_img.shape[1]) == int(layer_features.shape[1]):
-	mask_img = avg_pool2d(mask_img, 2)
+	mask_img = max_pool2d(mask_img, 2)
 
 # loss += c_weight * loss_util.content_loss(naive_img_content_features,
 # 										fusion_img_content_features)
 
 # masked content loss - experiment 1
-# loss += c_weight * loss_util.masked_content_loss(naive_img_content_features,
-# 										fusion_img_content_features, mask_img)
+loss += c_weight * loss_util.masked_content_loss(naive_img_content_features,
+										fusion_img_content_features, mask_img)
 
 # pdb.set_trace()
 
@@ -170,7 +172,7 @@ evaluator = Evaluator()
 
 # run scipy-based optimization (L-BFGS) over the pixels of the generated image
 # so as to minimize the neural style loss
-x = utils.preprocess_image(naive_img_o)
+x = utils.preprocess_img(naive_img_o)
 
 max_iter = 100
 for i in range(max_iter):
@@ -180,8 +182,8 @@ for i in range(max_iter):
 									 fprime=evaluator.grads, maxfun=20)
 	print('Current loss value:', min_val)
 	# save current generated image
-	img = utils.deprocess_image(x.copy(), img_rows, img_cols)
-	save_folder = 'results/' + indices[file_index] + '/'
+	img = utils.deprocess_img(x.copy(), img_rows, img_cols)
+	save_folder = 'results_old/' + indices[file_index] + '/'
 	os.makedirs(save_folder, exist_ok=True)
 	fname = save_folder + 'iteration_%d.png' % i
 	save_img(fname, img)
