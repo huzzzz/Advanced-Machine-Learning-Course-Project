@@ -174,7 +174,7 @@ style_features, content_features = get_feature_representations(model, naive_img,
 fusion_img = copy.deepcopy(naive_img)
 fusion_img = tfe.Variable(fusion_img, dtype=tf.float32)
 # Create our optimizer
-opt = tf.train.AdamOptimizer(learning_rate=0.05)
+opt = tf.train.AdamOptimizer(learning_rate=5)
 # opt = tf.train.AdamOptimizer(learning_rate=5, beta1=0.99, epsilon=1e-1)
 # opt = LBFGS([naive_img], max_iter = 1000)
 
@@ -189,7 +189,7 @@ cfg = {
 }
 
 # For displaying
-max_iter = 1000
+max_iter = 10000
 
 best_loss = float('inf')
 imgs = []
@@ -197,6 +197,8 @@ for i in range(max_iter):
     start_time = time.time()
     grads, all_loss = compute_grads(cfg)
     loss, style_score, content_score = all_loss
+    # pdb.set_trace()
+    grads = grads * mask_img
     opt.apply_gradients([(grads, fusion_img)])
     end_time = time.time()
 

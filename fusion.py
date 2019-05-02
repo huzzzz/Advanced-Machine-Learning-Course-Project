@@ -56,18 +56,11 @@ mask_img = mask_imgs[file_index]
 mask_dilated_img = mask_dilated_imgs[file_index]
 
 mask_img = mask_dilated_img / 255.0
-
-# object_img = np.random.rand(500,300,3)
-# style_img = np.random.rand(500,300,3)
-# naive_img_o = np.random.rand(500,300,3)
-# mask_img = np.random.rand(500,300,3)
-# mask_dilated_img = utils.dilate_mask(mask_img)
-
-# get tensor representations of our images
+mask_img = np.expand_dims(mask_img, axis=0)
+mask_img = tf.cast(mask_img, tf.float32)
 
 naive_img = K.variable(utils.preprocess_img(naive_img_o))
 style_img = K.variable(utils.preprocess_img(style_img))
-mask_img = K.variable(utils.preprocess_img(mask_dilated_img))
 img_rows, img_cols = naive_img.shape[1] , naive_img.shape[2]
 
 fusion_img = K.placeholder((1, img_rows, img_cols, 3))
@@ -90,21 +83,21 @@ t_weight = 0.2
 # combine these loss functions into a single scalar
 loss = K.variable(0.0)
 
-
 layer_features = outputs_dict['block5_conv2']
 naive_img_content_features = layer_features[0, :, :, :]
 fusion_img_content_features = layer_features[2, :, :, :]
 
 # downsample mask to match layer dimension
-while not int(mask_img.shape[1]) == int(layer_features.shape[1]):
-	mask_img = max_pool2d(mask_img, 2)
+content_mask_img = mask_img
+while not int(content_mask_img.shape[1]) == int(layer_features.shape[1]):
+	content_mask_img = max_pool2d(content_mask_img, 2)
 
 # loss += c_weight * loss_util.content_loss(naive_img_content_features,
 # 										fusion_img_content_features)
 
 # masked content loss - experiment 1
 loss += c_weight * loss_util.masked_content_loss(naive_img_content_features,
-										fusion_img_content_features, mask_img)
+										fusion_img_content_features, content_mask_img)
 
 # pdb.set_trace()
 
@@ -115,7 +108,14 @@ for layer_name in feature_layers:
 	layer_features = outputs_dict[layer_name]
 	style_img_style_features = layer_features[1, :, :, :]
 	fusion_img_style_features = layer_features[2, :, :, :]
-	sl = loss_util.style_loss(fusion_img_style_features, style_img_style_features, img_rows, img_cols)
+
+	style_mask_img = mask_img
+	while not int(style_mask_img.shape[1]) == int(layer_features.shape[1]):
+		style_mask_img = max_pool2d(style_mask_img, 2)
+
+	# sl = loss_util.style_loss(fusion_img_style_features, style_img_style_features, img_rows, img_cols)
+	sl = loss_util.masked_style_loss(fusion_img_style_features, style_img_style_features,
+							 style_mask_img, img_rows, img_cols)
 	loss += (s_weight / len(feature_layers)) * sl
 loss += t_weight * loss_util.total_variation_loss(fusion_img, img_rows, img_cols)
 
