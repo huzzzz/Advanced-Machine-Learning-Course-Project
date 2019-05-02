@@ -1,5 +1,7 @@
 import keras.backend as K
 from keras.applications import VGG16
+import pdb
+import tensorflow as tf
 
 # ## Contains the different loss function that we are using
 
@@ -16,15 +18,15 @@ def gram_matrix(x):
 # and from the generated image
 
 
-def style_loss(style, combination, img_rows, img_cols):
-	assert K.ndim(style) == 3
-	assert K.ndim(combination) == 3
+def style_loss(style, combination):
+
+	img_rows, img_cols, channels = style.get_shape().as_list()
+
 	S = gram_matrix(style)
 	C = gram_matrix(combination)
 	channels = 3
 	size = img_rows * img_cols
-	# pdb.set_trace()
-	return K.sum(K.square(S - C)) / (4.0 * (channels ** 2) * (int(size) ** 2))
+	return tf.reduce_mean(tf.square(S - C)) / (4.0 * (channels ** 2) * (int(size) ** 2))
 
 # an auxiliary loss function
 # designed to maintain the "content" of the
@@ -33,6 +35,12 @@ def style_loss(style, combination, img_rows, img_cols):
 
 def content_loss(base, combination):
 	return K.sum(K.square(combination - base))
+
+def masked_content_loss(base, combination, mask):
+	mask = mask[0,:,:,0]
+	mask = K.repeat(mask , int(base.shape[2]))
+	mask = K.reshape(mask, [mask.shape[0], mask.shape[2], mask.shape[1]])
+	return tf.reduce_mean(mask*(tf.square(combination - base)))
 
 # the 3rd loss function, total variation loss,
 # designed to keep the generated image locally coherent

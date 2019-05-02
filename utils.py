@@ -6,16 +6,16 @@ from keras.models import Model
 import numpy as np
 import pdb
 
-def preprocess_image(img):
+def preprocess_img(img):
 	img = np.expand_dims(img, axis=0)
 	img = vgg16.preprocess_input(img)
-	# caffe: will convert the images from RGB to BGR,
+	# caffe: will convert the imgs from RGB to BGR,
     # then will zero-center each color channel with
-    # respect to the ImageNet dataset, without scaling.
-	# converts the image to -1 and 1
+    # respect to the imgNet dataset, without scaling.
+	# converts the img to -1 and 1
 	return img
 
-def deprocess_image(x,img_nrows, img_ncols):
+def deprocess_img(x,img_nrows, img_ncols):
 
 	x = x.reshape((img_nrows, img_ncols, 3))
 	x[:, :, 0] += 103.939
@@ -30,7 +30,7 @@ def dilate_mask(mask):
 	loose_mask[loose_mask>=0.1] = 1
 	return loose_mask
 
-def build_vgg(img,vgg_layers,weights="imagenet"):
+def build_vgg(img,vgg_layers,weights="imgnet"):
 
 	# img = Input(shape=(img_rows, img_cols, 3))
 	# Get the vgg network from Keras applications

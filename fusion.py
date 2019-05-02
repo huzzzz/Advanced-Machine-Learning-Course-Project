@@ -1,6 +1,7 @@
 import tensorflow as tf
 import datetime
 import keras.backend as K
+from tensorflow.contrib.layers import avg_pool2d
 from keras.callbacks import TensorBoard
 import matplotlib.pyplot as plt
 import numpy as np
@@ -64,6 +65,7 @@ mask_dilated_img = mask_dilated_imgs[file_index]
 
 naive_img = K.variable(utils.preprocess_image(naive_img_o))
 style_img = K.variable(utils.preprocess_image(style_img))
+mask_img = K.variable(utils.preprocess_image(mask_dilated_img))
 img_rows, img_cols = naive_img.shape[1] , naive_img.shape[2]
 
 fusion_img = K.placeholder((1, img_rows, img_cols, 3))
@@ -85,11 +87,24 @@ t_weight = 0.2
 
 # combine these loss functions into a single scalar
 loss = K.variable(0.0)
+
+
 layer_features = outputs_dict['block5_conv2']
 naive_img_content_features = layer_features[0, :, :, :]
 fusion_img_content_features = layer_features[2, :, :, :]
-loss += c_weight * loss_util.content_loss(naive_img_content_features,
-										fusion_img_content_features)
+
+# downsample mask to match layer dimension
+while not int(mask_img.shape[1]) == int(layer_features.shape[1]):
+	mask_img = avg_pool2d(mask_img, 2)
+
+# loss += c_weight * loss_util.content_loss(naive_img_content_features,
+# 										fusion_img_content_features)
+
+# masked content loss - experiment 1
+# loss += c_weight * loss_util.masked_content_loss(naive_img_content_features,
+# 										fusion_img_content_features, mask_img)
+
+# pdb.set_trace()
 
 feature_layers = ['block1_conv1', 'block2_conv1',
 				  'block3_conv1', 'block4_conv1',
@@ -113,12 +128,8 @@ else:
 
 f_outputs = K.function([fusion_img], outputs)
 
-
 def eval_loss_and_grads(x):
-	if K.image_data_format() == 'channels_first':
-		x = x.reshape((1, 3, img_rows, img_cols))
-	else:
-		x = x.reshape((1, img_rows, img_cols, 3))
+	x = x.reshape((1, img_rows, img_cols, 3))
 	outs = f_outputs([x])
 	loss_value = outs[0]
 	if len(outs[1:]) == 1:
