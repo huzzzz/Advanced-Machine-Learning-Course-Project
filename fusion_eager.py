@@ -15,6 +15,7 @@ import utils
 import loss_util
 import time
 import sys
+import copy 
 tf.enable_eager_execution()
 
 # copy data
@@ -58,10 +59,6 @@ img_rows, img_cols = naive_img.shape[0] , naive_img.shape[1]
 
 naive_img = utils.preprocess_img(naive_img)
 style_img = utils.preprocess_img(style_img)
-
-# init
-fusion_img = utils.preprocess_img(naive_img)
-
 
 content_layers = ['block5_conv2'] 
 # Style layer we are interested in
@@ -149,8 +146,7 @@ for layer in model.layers:
 style_features, content_features = get_feature_representations(model, naive_img, style_img)
 
 # Set initial img
-fusion_img = naive_img.copy()
-pdb.set_trace()
+fusion_img = copy.deepcopy(naive_img)
 fusion_img = tfe.Variable(fusion_img, dtype=tf.float32)
 # Create our optimizer
 opt = tf.train.AdamOptimizer(learning_rate=5, beta1=0.99, epsilon=1e-1)
