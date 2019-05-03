@@ -53,6 +53,9 @@ naive_imgs = np.array(naive_imgs)
 
 # particular case - 
 
+# initial_naive_img = cv2.imread('results_ncc_style_masked/' + str(file_index) + '/iteration_1450.png')
+# initial_naive_img = utils.preprocess_img(initial_naive_img)
+
 style_img = style_imgs[file_index]
 naive_img = naive_imgs[file_index]
 mask_img = mask_imgs[file_index]
@@ -63,7 +66,6 @@ naive_img = utils.preprocess_img(naive_img)
 style_img = utils.preprocess_img(style_img)
 mask_img = mask_dilated_img
 mask_img = tf.expand_dims(mask_img, axis=0) / 255.0
-
 content_layers = ['block5_conv2'] 
 # Style layer we are interested in
 style_layers = ['block1_conv1',
@@ -111,6 +113,8 @@ def compute_loss(model, loss_weights, fusion_img, style_features, content_featur
     content_score = 0
     ucontent_score = 0
 
+    content_ncc_score = 0
+    style_ncc_score = 0
     # style loss
     weight_per_style_layer = 1.0 / float(num_style_layers)
     for target_style, comb_style in zip(style_features, style_output_features):
@@ -124,6 +128,9 @@ def compute_loss(model, loss_weights, fusion_img, style_features, content_featur
         style_score += weight_per_style_layer * \
                     loss_util.masked_style_loss(comb_style[0], target_style,local_mask_img, img_rows, img_cols)
 
+        # style_ncc_score += weight_per_style_layer * \
+        #             loss_util.ncc_style_loss(comb_style[0], target_style,local_mask_img, img_rows, img_cols)
+
     # Accumulate content losses from all layers 
     weight_per_content_layer = 1.0 / float(num_content_layers)
     for target_content, comb_content in zip(content_features, content_output_features):
@@ -134,9 +141,12 @@ def compute_loss(model, loss_weights, fusion_img, style_features, content_featur
         ucontent_score += weight_per_content_layer* loss_util.content_loss(comb_content[0], target_content)
         content_score += weight_per_content_layer* loss_util.masked_content_loss(comb_content[0],
              target_content, local_mask_img)
-
+        content_ncc_score += weight_per_content_layer* loss_util.ncc_content_loss(comb_content[0],
+             target_content, local_mask_img)
     style_score *= style_weight
     content_score *= content_weight
+    
+    content_ncc_score *= content_weight
 
     total_variation_loss = tv_weight * loss_util.total_variation_loss(fusion_img, img_rows, img_cols)
 
@@ -146,8 +156,17 @@ def compute_loss(model, loss_weights, fusion_img, style_features, content_featur
     print("content score = {:.2e}".format(content_score.numpy()))
     print("ucontent score = {:.2e}".format(ucontent_score.numpy()))
     print("total variation loss = {:.2e}".format(total_variation_loss.numpy()))
-    loss = style_score + content_score + total_variation_loss
-    return loss, style_score, content_score
+    print("content ncc score = {:.2e}".format(content_ncc_score.numpy()))
+    
+    # loss = style_score + content_score + total_variation_loss
+    # return loss, style_score, content_score
+
+    loss = style_score - content_ncc_score + total_variation_loss
+    return loss, ustyle_score, -content_ncc_score
+
+    # loss = -style_ncc_score - content_ncc_score + total_variation_loss
+    # return loss, -style_ncc_score, -content_ncc_score
+
 
 def compute_grads(cfg):
     with tf.GradientTape() as tape: 
@@ -157,9 +176,9 @@ def compute_grads(cfg):
     return tape.gradient(total_loss, cfg['fusion_img']), all_loss
 
 
-content_weight = 0.2
-style_weight = 0.8
-tv_weight = 0.0
+content_weight = 20
+style_weight = 0.80
+tv_weight = 0.1
 
 
 
@@ -172,9 +191,13 @@ style_features, content_features = get_feature_representations(model, naive_img,
 
 # Set initial img
 fusion_img = copy.deepcopy(naive_img)
+#fusion_img = copy.deepcopy(initial_naive_img)
+
 fusion_img = tfe.Variable(fusion_img, dtype=tf.float32)
 # Create our optimizer
 opt = tf.train.AdamOptimizer(learning_rate=5)
+#opt = tf.train.AdamOptimizer(learning_rate=0.5)
+
 # opt = tf.train.AdamOptimizer(learning_rate=5, beta1=0.99, epsilon=1e-1)
 # opt = LBFGS([naive_img], max_iter = 1000)
 
@@ -189,11 +212,12 @@ cfg = {
 }
 
 # For displaying
+initial_iter = 0
 max_iter = 10000
 
 best_loss = float('inf')
 imgs = []
-for i in range(max_iter):
+for i in range(initial_iter,max_iter):
     start_time = time.time()
     grads, all_loss = compute_grads(cfg)
     loss, style_score, content_score = all_loss
@@ -209,7 +233,7 @@ for i in range(max_iter):
         if loss < best_loss:
             best_loss = loss
             img = utils.deprocess_img(fusion_img.numpy(), img_rows, img_cols)
-            save_folder = 'results/' + indices[file_index] + '/'
+            save_folder = 'results_ncc_style_masked/' + indices[file_index] + '_v1/'
             os.makedirs(save_folder, exist_ok=True)
             fname = save_folder + 'iteration_%d.png' % i
             save_img(fname, img)
