@@ -121,6 +121,7 @@ loss += t_weight * loss_util.total_variation_loss(fusion_img, img_rows, img_cols
 
 # get the gradients of the generated image wrt the loss
 grads = K.gradients(loss, fusion_img)
+# grads = grads * mask_img
 
 outputs = [loss]
 if isinstance(grads, (list, tuple)):
